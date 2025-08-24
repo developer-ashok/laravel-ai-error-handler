@@ -64,11 +64,11 @@
             <p><strong>Status:</strong> <span class="status-badge">✅ SUCCESSFULLY UPDATED</span></p>
         </div>
 
-        @if(session('updated_content'))
+        @if(isset($updatedContent) && !empty($updatedContent))
             <div class="updated-file-section">
                 <h3>📝 Updated File Content:</h3>
                 <div class="file-content-preview">
-                    <pre><code>{{ session('updated_content') }}</code></pre>
+                    <pre><code>{{ $updatedContent }}</code></pre>
                 </div>
                 <p class="file-note"><em>This is the current state of your file after the AI fix was applied.</em></p>
             </div>
