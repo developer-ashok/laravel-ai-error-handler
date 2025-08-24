@@ -41,15 +41,6 @@ class AIErrorFixController
 
         $apiKey = config('ai-error-handler.perplexity_api_key');
         $model = config('ai-error-handler.model', 'sonar');
-        
-        // Map simple model names to full Perplexity model names
-        $modelMap = [
-            'sonar' => 'llama-3.1-sonar-large-128k-online',
-            'sonar-small' => 'llama-3.1-sonar-small-128k-online',
-            'sonar-huge' => 'llama-3.1-sonar-huge-128k-online',
-        ];
-        
-        $fullModelName = $modelMap[$model] ?? $model;
 
         try {
             $response = Http::withToken($apiKey)->post('https://api.perplexity.ai/chat/completions', [
