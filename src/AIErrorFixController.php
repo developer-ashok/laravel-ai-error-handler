@@ -21,47 +21,67 @@ class AIErrorFixController
 
     public function fix(Request $request)
     {
+        // Handle GET requests (direct access)
+        if ($request->isMethod('GET')) {
+            return view('ai-error-handler::error-form', [
+                'title' => 'AI Error Handler - Manual Fix Request',
+                'message' => 'Please provide error details to get AI-powered fixes.'
+            ]);
+        }
+
+        // Handle POST requests (form submission)
         $errorMessage = $request->input('error_message');
         $errorFile = $request->input('error_file');
         $errorLine = $request->input('error_line');
+
+        // Validate required inputs
+        if (empty($errorMessage) || empty($errorFile) || empty($errorLine)) {
+            return redirect()->back()->with('error', 'All error details are required: message, file, and line number.');
+        }
 
         $apiKey = config('ai-error-handler.perplexity_api_key');
         $model = config('ai-error-handler.model', 'sonar');
         
         // Map simple model names to full Perplexity model names
-        // $modelMap = [
-        //     'sonar' => 'llama-3.1-sonar-large-128k-online',
-        //     'sonar-small' => 'llama-3.1-sonar-small-128k-online',
-        //     'sonar-huge' => 'llama-3.1-sonar-huge-128k-online',
-        // ];
+        $modelMap = [
+            'sonar' => 'llama-3.1-sonar-large-128k-online',
+            'sonar-small' => 'llama-3.1-sonar-small-128k-online',
+            'sonar-huge' => 'llama-3.1-sonar-huge-128k-online',
+        ];
         
-        $fullModelName = $model;
+        $fullModelName = $modelMap[$model] ?? $model;
 
-        $response = Http::withToken($apiKey)->post('https://api.perplexity.ai/chat/completions', [
-            'model' => $fullModelName,
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are an AI Laravel debugging assistant.'],
-                ['role' => 'user', 'content' => "Fix this error: $errorMessage in file $errorFile on line $errorLine"]
-            ]
-        ]);
+        try {
+            $response = Http::withToken($apiKey)->post('https://api.perplexity.ai/chat/completions', [
+                'model' => $fullModelName,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are an AI Laravel debugging assistant.'],
+                    ['role' => 'user', 'content' => "Fix this error: $errorMessage in file $errorFile on line $errorLine"]
+                ]
+            ]);
 
-        $aiFix = $response->json()['choices'][0]['message']['content'] ?? 'No fix suggestion available.';
-        
-        // Extract code fixes from AI response
-        $extractedFixes = $this->fixParser->extractCodeFromAIResponse($aiFix);
-        
-        // Check if backup exists for this file
-        $hasBackup = $this->backupService->hasBackup($errorFile);
-        $backupFileName = $hasBackup;
+            $aiFix = $response->json()['choices'][0]['message']['content'] ?? 'No fix suggestion available.';
+            
+            // Extract code fixes from AI response
+            $extractedFixes = $this->fixParser->extractCodeFromAIResponse($aiFix);
+            
+            // Check if backup exists for this file
+            $hasBackup = $this->backupService->hasBackup($errorFile);
+            $backupFileName = $hasBackup;
 
-        return view('ai-error-handler::fix-result', [
-            'aiFix' => $aiFix,
-            'errorFile' => $errorFile,
-            'errorLine' => $errorLine,
-            'extractedFixes' => $extractedFixes,
-            'hasBackup' => $hasBackup,
-            'backupFileName' => $backupFileName,
-        ]);
+            return view('ai-error-handler::fix-result', [
+                'aiFix' => $aiFix,
+                'errorFile' => $errorFile,
+                'errorLine' => $errorLine,
+                'extractedFixes' => $extractedFixes,
+                'hasBackup' => $hasBackup,
+                'backupFileName' => $backupFileName,
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error calling Perplexity AI: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to get AI fix: ' . $e->getMessage());
+        }
     }
 
     public function applyFix(Request $request)
