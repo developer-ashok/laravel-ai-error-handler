@@ -23,10 +23,12 @@ class AIErrorFixController
     {
         // Handle GET requests (direct access)
         if ($request->isMethod('GET')) {
-            return view('ai-error-handler::error-form', [
-                'title' => 'AI Error Handler - Manual Fix Request',
-                'message' => 'Please provide error details to get AI-powered fixes.'
-            ]);
+            return redirect('/');
+            
+            // return view('ai-error-handler::error', [
+            //     'title' => 'AI Error Handler - Manual Fix Request',
+            //     'message' => 'Please provide error details to get AI-powered fixes.'
+            // ]);
         }
 
         // Handle POST requests (form submission)

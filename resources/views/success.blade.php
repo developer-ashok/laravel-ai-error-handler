@@ -109,7 +109,7 @@
         @endif
 
         <div style="text-align: center; margin-top: 30px;">
-            <a href="{{ url()->previous() }}" class="back-link">← Go Back</a>
+            <a href="{{ url('/') }}" class="back-link">← Go Home</a>
         </div>
     </div>
 </body>
