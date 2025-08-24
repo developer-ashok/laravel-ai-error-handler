@@ -337,6 +337,26 @@ For support and questions:
 
 **Important**: This package provides AI-powered debugging suggestions. Always review and test AI-generated code before implementing it in production. The suggestions are meant to assist with debugging and should not be relied upon as the sole solution for complex system logic issues.
 
+---
+
+## 📞 Contact Information
+
+**Developer:** Ashok Chandrapal 👨‍💻  
+**Phone:** +91 9033359874 📱  
+**Email:** developer7039@gmail.com ✉️  
+**GitHub:** [github.com/developer-ashok](https://github.com/developer-ashok) 🐙  
+**LinkedIn:** [linkedin.com/in/ashok-chandrapal](https://linkedin.com/in/ashok-chandrapal) 💼
+
+---
+
+## Support the Project 💝
+
+If you find this extension helpful and want to support its development, consider buying me a coffee! ☕
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support%20the%20project-yellow.svg?style=flat-square&logo=buy-me-a-coffee)](https://buymeacoffee.com/coderubix)
+
+Your support helps keep this project free and actively maintained. Every contribution, no matter how small, is greatly appreciated! 🙏
+
 ## Changelog
 
 ### Version 1.0.0 (Latest)
