@@ -74,7 +74,7 @@
         const errorFile = '{{ $errorFile }}';
         const errorLine = {{ $errorLine }};
         const hasBackup = {{ $hasBackup ? 'true' : 'false' }};
-        const backupFile = '{{ $hasBackup }}';
+        const backupFileName = '{{ $backupFileName }}';
         
         function showAlert(message, type = 'success') {
             const alertContainer = document.getElementById('alert-container');
@@ -93,6 +93,12 @@
                 return;
             }
             
+            // Show loading state
+            const applyButton = event.target;
+            const originalText = applyButton.textContent;
+            applyButton.textContent = 'Applying Fix...';
+            applyButton.disabled = true;
+            
             const formData = new FormData();
             formData.append('error_file', errorFile);
             formData.append('error_line', errorLine);
@@ -100,22 +106,40 @@
             formData.append('fix_index', fixIndex);
             formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
             
+            console.log('Applying fix:', {
+                errorFile: errorFile,
+                errorLine: errorLine,
+                fixCode: fixCode,
+                fixIndex: fixIndex
+            });
+            
             fetch('/ai-error-handler/apply-fix', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
             .then(data => {
+                console.log('Response data:', data);
                 if (data.success) {
-                    showAlert(data.message, 'success');
+                    showAlert(data.message + ' Backup created: ' + data.backup_created, 'success');
                     // Refresh page to show backup option
                     setTimeout(() => location.reload(), 2000);
                 } else {
                     showAlert(data.message, 'danger');
+                    // Reset button state
+                    applyButton.textContent = originalText;
+                    applyButton.disabled = false;
                 }
             })
             .catch(error => {
+                console.error('Error applying fix:', error);
                 showAlert('Network error: ' + error.message, 'danger');
+                // Reset button state
+                applyButton.textContent = originalText;
+                applyButton.disabled = false;
             });
         }
         
@@ -126,7 +150,7 @@
             
             const formData = new FormData();
             formData.append('error_file', errorFile);
-            formData.append('backup_file', backupFile);
+            formData.append('backup_file', backupFileName);
             formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
             
             fetch('/ai-error-handler/restore', {

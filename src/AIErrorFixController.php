@@ -29,13 +29,13 @@ class AIErrorFixController
         $model = config('ai-error-handler.model', 'sonar');
         
         // Map simple model names to full Perplexity model names
-        $modelMap = [
-            'sonar' => 'llama-3.1-sonar-large-128k-online',
-            'sonar-small' => 'llama-3.1-sonar-small-128k-online',
-            'sonar-huge' => 'llama-3.1-sonar-huge-128k-online',
-        ];
+        // $modelMap = [
+        //     'sonar' => 'llama-3.1-sonar-large-128k-online',
+        //     'sonar-small' => 'llama-3.1-sonar-small-128k-online',
+        //     'sonar-huge' => 'llama-3.1-sonar-huge-128k-online',
+        // ];
         
-        $fullModelName = $modelMap[$model] ?? $model;
+        $fullModelName = $model;
 
         $response = Http::withToken($apiKey)->post('https://api.perplexity.ai/chat/completions', [
             'model' => $fullModelName,
@@ -52,6 +52,7 @@ class AIErrorFixController
         
         // Check if backup exists for this file
         $hasBackup = $this->backupService->hasBackup($errorFile);
+        $backupFileName = $hasBackup;
 
         return view('ai-error-handler::fix-result', [
             'aiFix' => $aiFix,
@@ -59,6 +60,7 @@ class AIErrorFixController
             'errorLine' => $errorLine,
             'extractedFixes' => $extractedFixes,
             'hasBackup' => $hasBackup,
+            'backupFileName' => $backupFileName,
         ]);
     }
 
@@ -75,6 +77,14 @@ class AIErrorFixController
         $errorLine = (int) $request->input('error_line');
         $fixCode = $request->input('fix_code');
         $fixIndex = (int) $request->input('fix_index');
+        
+        // Log the request for debugging
+        \Log::info('Applying AI fix', [
+            'error_file' => $errorFile,
+            'error_line' => $errorLine,
+            'fix_code' => $fixCode,
+            'fix_index' => $fixIndex
+        ]);
 
         try {
             // Validate file exists and is writable
