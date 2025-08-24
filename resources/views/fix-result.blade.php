@@ -51,7 +51,7 @@
                     <h4>Fix {{ $fix['index'] }} ({{ ucfirst(str_replace('_', ' ', $fix['type'])) }}):</h4>
                     <pre><code>{{ $fix['content'] }}</code></pre>
                     <div class="code-actions">
-                        <button type="button" onclick="applyFix({{ $fix['index'] }}, '{{ addslashes($fix['content']) }}')">
+                        <button type="button" onclick="applyFix({{ $fix['index'] }}, '{{ addslashes($fix['content']) }}', event)">
                             Apply This Fix
                         </button>
                         <button type="button" onclick="copyToClipboard('{{ addslashes($fix['content']) }}')" class="success">
@@ -88,13 +88,24 @@
             }, 5000);
         }
         
-        function applyFix(fixIndex, fixCode) {
+        function applyFix(fixIndex, fixCode, event) {
+            // Validate required parameters
+            if (!errorFile || !errorLine || !fixCode) {
+                showAlert('Error: Missing required parameters for applying fix', 'danger');
+                return;
+            }
+            
             if (!confirm('Are you sure you want to apply this fix? A backup will be created automatically.')) {
                 return;
             }
             
             // Show loading state
-            const applyButton = event.target;
+            const applyButton = event ? event.target : null;
+            if (!applyButton) {
+                showAlert('Error: Could not identify button element', 'danger');
+                return;
+            }
+            
             const originalText = applyButton.textContent;
             applyButton.textContent = 'Applying Fix...';
             applyButton.disabled = true;
