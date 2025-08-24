@@ -43,7 +43,19 @@ class AIErrorFixController
         $model = config('ai-error-handler.model', 'sonar');
 
         try {
-            $response = Http::withToken($apiKey)->post('https://api.perplexity.ai/chat/completions', [
+            // First API call: Get detailed explanation and analysis
+            $explanationResponse = Http::withToken($apiKey)->post('https://api.perplexity.ai/chat/completions', [
+                'model' => $model,
+                'messages' => [
+                    ['role' => 'system', 'content' => 'You are a PHP debugging expert. Analyze the error and provide a detailed explanation of what went wrong, why it happened, and the best approach to fix it. Include context about the error type, common causes, and prevention tips.'],
+                    ['role' => 'user', 'content' => "Analyze this PHP error: $errorMessage in file $errorFile on line $errorLine. Provide a detailed explanation of the problem and the best approach to fix it."]
+                ]
+            ]);
+
+            $explanation = $explanationResponse->json()['choices'][0]['message']['content'] ?? 'No explanation available.';
+
+            // Second API call: Get clean, executable code fixes only
+            $codeResponse = Http::withToken($apiKey)->post('https://api.perplexity.ai/chat/completions', [
                 'model' => $model,
                 'messages' => [
                     ['role' => 'system', 'content' => 'You are a PHP code fixer. Your ONLY job is to provide executable PHP code that fixes the given error. IMPORTANT RULES: 1) Provide ONLY valid PHP code - no explanations, comments, or text outside code blocks. 2) If you provide multiple solutions, wrap each in separate ```php code blocks. 3) The code must be ready to copy-paste and run. 4) Do not include markdown formatting, explanations, or any non-PHP text. 5) Focus on the specific error location and provide minimal, targeted fixes.'],
@@ -51,7 +63,7 @@ class AIErrorFixController
                 ]
             ]);
 
-            $aiFix = $response->json()['choices'][0]['message']['content'] ?? 'No fix suggestion available.';
+            $aiFix = $codeResponse->json()['choices'][0]['message']['content'] ?? 'No fix suggestion available.';
             
             // Extract code fixes from AI response
             $extractedFixes = $this->fixParser->extractCodeFromAIResponse($aiFix);
@@ -61,6 +73,7 @@ class AIErrorFixController
             $backupFileName = $hasBackup;
 
             return view('ai-error-handler::fix-result', [
+                'explanation' => $explanation,
                 'aiFix' => $aiFix,
                 'errorFile' => $errorFile,
                 'errorLine' => $errorLine,
@@ -123,7 +136,12 @@ class AIErrorFixController
                 return redirect()->back()->with('error', 'Failed to apply fix to file.');
             }
 
-            return redirect()->back()->with('success', 'Fix applied successfully! Backup created: ' . $backupFileName);
+            return redirect()->route('ai-error-handler.success')->with([
+                'success' => 'Fix applied successfully!',
+                'backup_file' => $backupFileName,
+                'error_file' => $errorFile,
+                'error_line' => $errorLine
+            ]);
 
         } catch (\Exception $e) {
             \Log::error('Error applying AI fix: ' . $e->getMessage());
@@ -148,7 +166,12 @@ class AIErrorFixController
                 // Delete the backup after successful restore
                 $this->backupService->deleteBackup($backupFile);
                 
-                return redirect()->back()->with('success', 'File restored successfully from backup!');
+                return redirect()->route('ai-error-handler.success')->with([
+                    'success' => 'File restored successfully from backup!',
+                    'backup_file' => 'Backup deleted after restoration',
+                    'error_file' => $errorFile,
+                    'error_line' => 0
+                ]);
             } else {
                 return redirect()->back()->with('error', 'Failed to restore file from backup.');
             }
@@ -157,5 +180,27 @@ class AIErrorFixController
             \Log::error('Error restoring from backup: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Error restoring file: ' . $e->getMessage());
         }
+    }
+
+    public function showSuccess(Request $request)
+    {
+        if (!session('success')) {
+            return redirect()->route('ai-error-handler.fix');
+        }
+
+        $backupFile = session('backup_file');
+        $errorFile = session('error_file');
+        $errorLine = session('error_line');
+
+        // Check if backup still exists
+        $hasBackup = $this->backupService->hasBackup($errorFile);
+
+        return view('ai-error-handler::success', [
+            'success' => session('success'),
+            'backupFile' => $backupFile,
+            'errorFile' => $errorFile,
+            'errorLine' => $errorLine,
+            'hasBackup' => $hasBackup
+        ]);
     }
 }

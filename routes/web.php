@@ -7,3 +7,4 @@ use LaravelAIErrorHandler\AIErrorFixController;
 Route::match(['GET', 'POST'], '/ai-error-handler/fix', [AIErrorFixController::class, 'fix']);
 Route::post('/ai-error-handler/apply-fix', [AIErrorFixController::class, 'applyFix']);
 Route::post('/ai-error-handler/restore', [AIErrorFixController::class, 'restore']);
+Route::get('/ai-error-handler/success', [AIErrorFixController::class, 'showSuccess'])->name('ai-error-handler.success');

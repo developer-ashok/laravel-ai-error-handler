@@ -21,6 +21,7 @@
         a { display: inline-block; margin-top: 15px; color: #007bff; text-decoration: none; }
         a:hover { text-decoration: underline; }
         .backup-info { background: #e7f3ff; padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .explanation-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; padding: 15px; margin: 15px 0; }
     </style>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
@@ -64,7 +65,12 @@
             <strong>Note:</strong> Only executable PHP code is extracted from AI responses. Explanatory text and comments are automatically filtered out for safety.
         </div>
         
-        <h3>Full AI Response:</h3>
+        <h3>Error Analysis & Explanation:</h3>
+        <div class="explanation-box">
+            <pre>{{ $explanation }}</pre>
+        </div>
+        
+        <h3>Executable Code Fixes:</h3>
         <pre>{{ $aiFix }}</pre>
         
         @if(!empty($extractedFixes))
