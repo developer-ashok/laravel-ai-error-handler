@@ -53,6 +53,12 @@ composer require coderubix/laravel-ai-error-handler
 php artisan vendor:publish --tag=ai-error-handler-config
 ```
 
+Optionally, you can also publish the views for customization:
+
+```bash
+php artisan vendor:publish --tag=ai-error-handler-views
+```
+
 ### 3. Environment Configuration
 
 Add your Perplexity API key to your `.env` file:
@@ -169,6 +175,8 @@ You can publish and customize the views:
 ```bash
 php artisan vendor:publish --tag=ai-error-handler-views
 ```
+
+This will publish the views to `resources/views/vendor/ai-error-handler/` where you can customize them.
 
 ### Custom Error Handling
 
