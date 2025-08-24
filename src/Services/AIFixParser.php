@@ -47,8 +47,8 @@ class AIFixParser
         // Remove common non-PHP text patterns
         $code = preg_replace('/^(Here is|Here\'s|Try this|Solution|Fix|Code|Example):\s*/i', '', $code);
         $code = preg_replace('/\s*(This will|This should|This code|The fix|The solution).*$/i', '', $code);
-        $code = preg_replace('/\s*\/\/\s*[^\/\n]*$/m', ''); // Remove trailing comments
-        $code = preg_replace('/^\s*\/\/\s*[^\/\n]*\n/m', ''); // Remove comment-only lines
+        $code = preg_replace('/\s*\/\/\s*[^\/\n]*$/m', '', $code); // Remove trailing comments
+        $code = preg_replace('/^\s*\/\/\s*[^\/\n]*\n/m', '', $code); // Remove comment-only lines
         
         return trim($code);
     }
