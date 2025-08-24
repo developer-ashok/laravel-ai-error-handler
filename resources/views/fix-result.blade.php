@@ -90,7 +90,7 @@
                                 Apply This Fix
                             </button>
                         </form>
-                        <button type="button" onclick="copyToClipboard('{{ addslashes($fix['content']) }}')" class="success">
+                        <button type="button" onclick="copyToClipboard(this)" class="success" data-code="{{ base64_encode($fix['content']) }}">
                             Copy Code
                         </button>
                     </div>
@@ -107,35 +107,81 @@
     </div>
 
     <script>
-        function copyToClipboard(text) {
+        function copyToClipboard(button) {
+            // Get the base64 encoded code from data attribute
+            const encodedCode = button.getAttribute('data-code');
+            
+            // Decode the base64 content
+            const text = atob(encodedCode);
+            
+            // Copy to clipboard
             navigator.clipboard.writeText(text).then(() => {
                 // Create a temporary alert for copy success
                 const alert = document.createElement('div');
                 alert.className = 'alert alert-success';
-                alert.innerHTML = 'Code copied to clipboard!';
+                alert.innerHTML = '✅ Code copied to clipboard!';
                 alert.style.position = 'fixed';
                 alert.style.top = '20px';
                 alert.style.right = '20px';
                 alert.style.zIndex = '9999';
+                alert.style.borderRadius = '5px';
+                alert.style.padding = '10px 15px';
+                alert.style.fontWeight = 'bold';
                 document.body.appendChild(alert);
                 
                 setTimeout(() => {
                     alert.remove();
                 }, 3000);
-            }).catch(() => {
-                // Create a temporary alert for copy failure
-                const alert = document.createElement('div');
-                alert.className = 'alert alert-danger';
-                alert.innerHTML = 'Failed to copy code to clipboard';
-                alert.style.position = 'fixed';
-                alert.style.top = '20px';
-                alert.style.right = '20px';
-                alert.style.zIndex = '9999';
-                document.body.appendChild(alert);
+            }).catch((error) => {
+                console.error('Copy failed:', error);
                 
-                setTimeout(() => {
-                    alert.remove();
-                }, 3000);
+                // Fallback: Create a textarea and select the text
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'absolute';
+                textarea.style.left = '-9999px';
+                document.body.appendChild(textarea);
+                textarea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    
+                    // Success with fallback method
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-success';
+                    alert.innerHTML = '✅ Code copied to clipboard! (fallback method)';
+                    alert.style.position = 'fixed';
+                    alert.style.top = '20px';
+                    alert.style.right = '20px';
+                    alert.style.zIndex = '9999';
+                    alert.style.borderRadius = '5px';
+                    alert.style.padding = '10px 15px';
+                    alert.style.fontWeight = 'bold';
+                    document.body.appendChild(alert);
+                    
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 3000);
+                } catch (fallbackError) {
+                    // Both methods failed
+                    const alert = document.createElement('div');
+                    alert.className = 'alert alert-danger';
+                    alert.innerHTML = '❌ Failed to copy code to clipboard. Please copy manually.';
+                    alert.style.position = 'fixed';
+                    alert.style.top = '20px';
+                    alert.style.right = '20px';
+                    alert.style.zIndex = '9999';
+                    alert.style.borderRadius = '5px';
+                    alert.style.padding = '10px 15px';
+                    alert.style.fontWeight = 'bold';
+                    document.body.appendChild(alert);
+                    
+                    setTimeout(() => {
+                        alert.remove();
+                    }, 5000);
+                }
+                
+                textarea.remove();
             });
         }
     </script>
