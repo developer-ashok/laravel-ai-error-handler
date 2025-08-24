@@ -136,11 +136,15 @@ class AIErrorFixController
                 return redirect()->back()->with('error', 'Failed to apply fix to file.');
             }
 
+            // Get the updated file content to show in success page
+            $updatedContent = File::get($errorFile);
+            
             return redirect()->route('ai-error-handler.success')->with([
                 'success' => 'Fix applied successfully!',
                 'backup_file' => $backupFileName,
                 'error_file' => $errorFile,
-                'error_line' => $errorLine
+                'error_line' => $errorLine,
+                'updated_content' => $updatedContent
             ]);
 
         } catch (\Exception $e) {
