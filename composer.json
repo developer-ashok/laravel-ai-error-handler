@@ -1,5 +1,5 @@
 {
-    "name": "your-vendor/laravel-ai-error-handler",
+    "name": "coderubix/laravel-ai-error-handler",
     "description": "AI-powered error handler for Laravel using Perplexity API.",
     "type": "library",
     "license": "MIT",

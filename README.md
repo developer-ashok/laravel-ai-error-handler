@@ -22,7 +22,7 @@ A Laravel package that integrates with Perplexity AI to provide intelligent erro
 ### 1. Install via Composer
 
 ```bash
-composer require your-vendor/laravel-ai-error-handler
+composer require coderubix/laravel-ai-error-handler
 ```
 
 ### 2. Publish Configuration
