@@ -55,8 +55,8 @@ class AIErrorFixController
             $response = Http::withToken($apiKey)->post('https://api.perplexity.ai/chat/completions', [
                 'model' => $fullModelName,
                 'messages' => [
-                    ['role' => 'system', 'content' => 'You are an AI Laravel debugging assistant.'],
-                    ['role' => 'user', 'content' => "Fix this error: $errorMessage in file $errorFile on line $errorLine"]
+                    ['role' => 'system', 'content' => 'You are a PHP code fixer. Your ONLY job is to provide executable PHP code that fixes the given error. IMPORTANT RULES: 1) Provide ONLY valid PHP code - no explanations, comments, or text outside code blocks. 2) If you provide multiple solutions, wrap each in separate ```php code blocks. 3) The code must be ready to copy-paste and run. 4) Do not include markdown formatting, explanations, or any non-PHP text. 5) Focus on the specific error location and provide minimal, targeted fixes.'],
+                    ['role' => 'user', 'content' => "Fix this PHP error: $errorMessage in file $errorFile on line $errorLine. Provide ONLY executable PHP code that fixes the issue."]
                 ]
             ]);
 

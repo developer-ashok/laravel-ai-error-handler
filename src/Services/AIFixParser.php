@@ -8,28 +8,31 @@ class AIFixParser
     {
         $fixes = [];
         
-        // Extract code blocks from markdown-style code blocks
+        // Extract code blocks from markdown-style code blocks (PHP only)
         preg_match_all('/```(?:php|laravel)?\s*\n(.*?)\n```/s', $aiResponse, $codeBlocks);
         
         if (!empty($codeBlocks[1])) {
             foreach ($codeBlocks[1] as $index => $code) {
-                $fixes[] = [
-                    'type' => 'code_block',
-                    'content' => trim($code),
-                    'index' => $index + 1
-                ];
+                $cleanCode = $this->cleanCodeContent($code);
+                if ($this->isValidPHPCode($cleanCode)) {
+                    $fixes[] = [
+                        'type' => 'code_block',
+                        'content' => $cleanCode,
+                        'index' => $index + 1
+                    ];
+                }
             }
         }
         
-        // Also extract single-line code snippets
-        preg_match_all('/`([^`\n]+)`/', $aiResponse, $inlineCode);
-        if (!empty($inlineCode[1])) {
-            foreach ($inlineCode[1] as $index => $code) {
-                // Skip if it's just a variable or short snippet
-                if (strlen($code) > 20 && (strpos($code, '->') !== false || strpos($code, '::') !== false)) {
+        // Extract PHP code that might not be in code blocks but looks like valid PHP
+        preg_match_all('/(?:^|\n)([a-zA-Z_$][a-zA-Z0-9_$]*\s*[=->:;(){}[\]]+.*?)(?:\n|$)/s', $aiResponse, $phpLines);
+        if (!empty($phpLines[1])) {
+            foreach ($phpLines[1] as $index => $code) {
+                $cleanCode = $this->cleanCodeContent($code);
+                if ($this->isValidPHPCode($cleanCode) && strlen($cleanCode) > 10) {
                     $fixes[] = [
-                        'type' => 'inline_code',
-                        'content' => trim($code),
+                        'type' => 'php_line',
+                        'content' => $cleanCode,
                         'index' => count($fixes) + 1
                     ];
                 }
@@ -37,6 +40,48 @@ class AIFixParser
         }
         
         return $fixes;
+    }
+    
+    private function cleanCodeContent(string $code): string
+    {
+        // Remove common non-PHP text patterns
+        $code = preg_replace('/^(Here is|Here\'s|Try this|Solution|Fix|Code|Example):\s*/i', '', $code);
+        $code = preg_replace('/\s*(This will|This should|This code|The fix|The solution).*$/i', '', $code);
+        $code = preg_replace('/\s*\/\/\s*[^\/\n]*$/m', ''); // Remove trailing comments
+        $code = preg_replace('/^\s*\/\/\s*[^\/\n]*\n/m', ''); // Remove comment-only lines
+        
+        return trim($code);
+    }
+    
+    private function isValidPHPCode(string $code): bool
+    {
+        // Basic PHP syntax validation
+        $code = trim($code);
+        
+        // Must contain PHP syntax elements
+        if (empty($code)) return false;
+        
+        // Check for common PHP patterns
+        $phpPatterns = [
+            '/\$[a-zA-Z_][a-zA-Z0-9_]*/',           // Variables
+            '/function\s+[a-zA-Z_][a-zA-Z0-9_]*/',  // Functions
+            '/class\s+[a-zA-Z_][a-zA-Z0-9_]*/',     // Classes
+            '/[a-zA-Z_][a-zA-Z0-9_]*\s*->\s*[a-zA-Z_][a-zA-Z0-9_]*/', // Object methods
+            '/[a-zA-Z_][a-zA-Z0-9_]*\s*::\s*[a-zA-Z_][a-zA-Z0-9_]*/', // Static methods
+            '/[a-zA-Z_][a-zA-Z0-9_]*\s*\(/',        // Function calls
+            '/\$\w+\s*=\s*[^;]+;/',                 // Variable assignment
+            '/if\s*\(/',                             // If statements
+            '/foreach\s*\(/',                        // Foreach loops
+            '/return\s+/',                           // Return statements
+        ];
+        
+        foreach ($phpPatterns as $pattern) {
+            if (preg_match($pattern, $code)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     public function generateFixedContent(string $originalContent, string $fixCode, int $errorLine): string

@@ -60,6 +60,10 @@
             <strong>Warning:</strong> Always review AI suggestions before applying them. Create a backup of your files before making changes.
         </div>
         
+        <div class="alert alert-info">
+            <strong>Note:</strong> Only executable PHP code is extracted from AI responses. Explanatory text and comments are automatically filtered out for safety.
+        </div>
+        
         <h3>Full AI Response:</h3>
         <pre>{{ $aiFix }}</pre>
         
