@@ -66,6 +66,7 @@ Add your Perplexity API key to your `.env` file:
 ```env
 PERPLEXITY_API_KEY=your_api_key_here
 AI_ERROR_HANDLER_ENABLED=true
+AI_ERROR_HANDLER_MODEL=sonar
 ```
 
 ## Configuration
@@ -76,6 +77,7 @@ The package configuration file (`config/ai-error-handler.php`) contains:
 return [
     'enabled' => env('AI_ERROR_HANDLER_ENABLED', false),
     'perplexity_api_key' => env('PERPLEXITY_API_KEY', ''),
+    'model' => env('AI_ERROR_HANDLER_MODEL', 'sonar'),
 ];
 ```
 
@@ -83,6 +85,17 @@ return [
 
 - **enabled**: Enable/disable the AI error handler (default: false)
 - **perplexity_api_key**: Your Perplexity AI API key
+- **model**: AI model to use for error analysis (default: 'sonar')
+
+### Available Models
+
+You can configure different Perplexity AI models by setting the `AI_ERROR_HANDLER_MODEL` environment variable:
+
+- **sonar** (default): `llama-3.1-sonar-large-128k-online` - Balanced performance and accuracy
+- **sonar-small**: `llama-3.1-sonar-small-128k-online` - Faster responses, lower cost
+- **sonar-huge**: `llama-3.1-sonar-huge-128k-online` - Maximum accuracy and detail
+
+You can also use the full Perplexity model name directly if you want to use a different model.
 
 ## Usage
 

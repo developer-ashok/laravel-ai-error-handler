@@ -9,6 +9,10 @@ class AIErrorHandlerServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(__DIR__.'/../config/ai-error-handler.php', 'ai-error-handler');
+        
+        // Register services
+        $this->app->singleton(\LaravelAIErrorHandler\Services\BackupService::class);
+        $this->app->singleton(\LaravelAIErrorHandler\Services\AIFixParser::class);
     }
 
     public function boot()

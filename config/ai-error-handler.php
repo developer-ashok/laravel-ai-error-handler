@@ -3,4 +3,5 @@
 return [
     'enabled' => env('AI_ERROR_HANDLER_ENABLED', false),
     'perplexity_api_key' => env('PERPLEXITY_API_KEY', ''),
+    'model' => env('AI_ERROR_HANDLER_MODEL', 'sonar'),
 ];
