@@ -28,12 +28,31 @@
     <div class="container">
         <h2>AI Fix Suggestion</h2>
         
+        @if(session('success'))
+            <div class="alert alert-success">
+                {{ session('success') }}
+            </div>
+        @endif
+        
+        @if(session('error'))
+            <div class="alert alert-danger">
+                {{ session('error') }}
+            </div>
+        @endif
+        
         <div id="alert-container"></div>
         
         @if($hasBackup)
             <div class="backup-info">
                 <strong>Backup Available:</strong> A backup file exists for this file. You can restore it if needed.
-                <button type="button" class="warning" onclick="restoreFile()">Restore from Backup</button>
+                <form method="POST" action="/ai-error-handler/restore" style="display: inline;">
+                    @csrf
+                    <input type="hidden" name="error_file" value="{{ $errorFile }}">
+                    <input type="hidden" name="backup_file" value="{{ $backupFileName }}">
+                    <button type="submit" class="warning" onclick="return confirm('Are you sure you want to restore the file from backup? This will overwrite current changes.')">
+                        Restore from Backup
+                    </button>
+                </form>
             </div>
         @endif
         
@@ -51,9 +70,16 @@
                     <h4>Fix {{ $fix['index'] }} ({{ ucfirst(str_replace('_', ' ', $fix['type'])) }}):</h4>
                     <pre><code>{{ $fix['content'] }}</code></pre>
                     <div class="code-actions">
-                        <button type="button" onclick="applyFix({{ $fix['index'] }}, '{{ addslashes($fix['content']) }}', event)">
-                            Apply This Fix
-                        </button>
+                        <form method="POST" action="/ai-error-handler/apply-fix" style="display: inline;">
+                            @csrf
+                            <input type="hidden" name="error_file" value="{{ $errorFile }}">
+                            <input type="hidden" name="error_line" value="{{ $errorLine }}">
+                            <input type="hidden" name="fix_code" value="{{ $fix['content'] }}">
+                            <input type="hidden" name="fix_index" value="{{ $fix['index'] }}">
+                            <button type="submit" class="warning" onclick="return confirm('Are you sure you want to apply this fix? A backup will be created automatically.')">
+                                Apply This Fix
+                            </button>
+                        </form>
                         <button type="button" onclick="copyToClipboard('{{ addslashes($fix['content']) }}')" class="success">
                             Copy Code
                         </button>
@@ -71,123 +97,35 @@
     </div>
 
     <script>
-        const errorFile = '{{ $errorFile }}';
-        const errorLine = {{ $errorLine }};
-        const hasBackup = {{ $hasBackup ? 'true' : 'false' }};
-        const backupFileName = '{{ $backupFileName }}';
-        
-        function showAlert(message, type = 'success') {
-            const alertContainer = document.getElementById('alert-container');
-            const alert = document.createElement('div');
-            alert.className = `alert alert-${type}`;
-            alert.innerHTML = message;
-            alertContainer.appendChild(alert);
-            
-            setTimeout(() => {
-                alert.remove();
-            }, 5000);
-        }
-        
-        function applyFix(fixIndex, fixCode, event) {
-            // Validate required parameters
-            if (!errorFile || !errorLine || !fixCode) {
-                showAlert('Error: Missing required parameters for applying fix', 'danger');
-                return;
-            }
-            
-            if (!confirm('Are you sure you want to apply this fix? A backup will be created automatically.')) {
-                return;
-            }
-            
-            // Show loading state
-            const applyButton = event ? event.target : null;
-            if (!applyButton) {
-                showAlert('Error: Could not identify button element', 'danger');
-                return;
-            }
-            
-            const originalText = applyButton.textContent;
-            applyButton.textContent = 'Applying Fix...';
-            applyButton.disabled = true;
-            
-            const formData = new FormData();
-            formData.append('error_file', errorFile);
-            formData.append('error_line', errorLine);
-            formData.append('fix_code', fixCode);
-            formData.append('fix_index', fixIndex);
-            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-            
-            console.log('Applying fix:', {
-                errorFile: errorFile,
-                errorLine: errorLine,
-                fixCode: fixCode,
-                fixIndex: fixIndex
-            });
-            
-            fetch('/ai-error-handler/apply-fix', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                console.log('Response status:', response.status);
-                return response.json();
-            })
-            .then(data => {
-                console.log('Response data:', data);
-                if (data.success) {
-                    showAlert(data.message + ' Backup created: ' + data.backup_created, 'success');
-                    // Refresh page to show backup option
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    showAlert(data.message, 'danger');
-                    // Reset button state
-                    applyButton.textContent = originalText;
-                    applyButton.disabled = false;
-                }
-            })
-            .catch(error => {
-                console.error('Error applying fix:', error);
-                showAlert('Network error: ' + error.message, 'danger');
-                // Reset button state
-                applyButton.textContent = originalText;
-                applyButton.disabled = false;
-            });
-        }
-        
-        function restoreFile() {
-            if (!confirm('Are you sure you want to restore the file from backup? This will overwrite current changes.')) {
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('error_file', errorFile);
-            formData.append('backup_file', backupFileName);
-            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-            
-            fetch('/ai-error-handler/restore', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert(data.message, 'success');
-                    // Refresh page to remove backup option
-                    setTimeout(() => location.reload(), 2000);
-                } else {
-                    showAlert(data.message, 'danger');
-                }
-            })
-            .catch(error => {
-                showAlert('Network error: ' + error.message, 'danger');
-            });
-        }
-        
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
-                showAlert('Code copied to clipboard!', 'success');
+                // Create a temporary alert for copy success
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-success';
+                alert.innerHTML = 'Code copied to clipboard!';
+                alert.style.position = 'fixed';
+                alert.style.top = '20px';
+                alert.style.right = '20px';
+                alert.style.zIndex = '9999';
+                document.body.appendChild(alert);
+                
+                setTimeout(() => {
+                    alert.remove();
+                }, 3000);
             }).catch(() => {
-                showAlert('Failed to copy code to clipboard', 'danger');
+                // Create a temporary alert for copy failure
+                const alert = document.createElement('div');
+                alert.className = 'alert alert-danger';
+                alert.innerHTML = 'Failed to copy code to clipboard';
+                alert.style.position = 'fixed';
+                alert.style.top = '20px';
+                alert.style.right = '20px';
+                alert.style.zIndex = '9999';
+                document.body.appendChild(alert);
+                
+                setTimeout(() => {
+                    alert.remove();
+                }, 3000);
             });
         }
     </script>

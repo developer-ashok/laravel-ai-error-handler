@@ -89,11 +89,11 @@ class AIErrorFixController
         try {
             // Validate file exists and is writable
             if (!File::exists($errorFile)) {
-                return response()->json(['success' => false, 'message' => 'File not found.']);
+                return redirect()->back()->with('error', 'File not found: ' . $errorFile);
             }
 
             if (!File::isWritable($errorFile)) {
-                return response()->json(['success' => false, 'message' => 'File is not writable.']);
+                return redirect()->back()->with('error', 'File is not writable: ' . $errorFile);
             }
 
             // Create backup before applying fix
@@ -109,17 +109,14 @@ class AIErrorFixController
             if (File::put($errorFile, $fixedContent) === false) {
                 // Restore from backup if fix failed
                 $this->backupService->restoreFromBackup($backupFileName, $errorFile);
-                return response()->json(['success' => false, 'message' => 'Failed to apply fix.']);
+                return redirect()->back()->with('error', 'Failed to apply fix to file.');
             }
 
-            return response()->json([
-                'success' => true, 
-                'message' => 'Fix applied successfully!',
-                'backup_created' => $backupFileName
-            ]);
+            return redirect()->back()->with('success', 'Fix applied successfully! Backup created: ' . $backupFileName);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            \Log::error('Error applying AI fix: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error applying fix: ' . $e->getMessage());
         }
     }
 
@@ -140,16 +137,14 @@ class AIErrorFixController
                 // Delete the backup after successful restore
                 $this->backupService->deleteBackup($backupFile);
                 
-                return response()->json([
-                    'success' => true, 
-                    'message' => 'File restored successfully from backup!'
-                ]);
+                return redirect()->back()->with('success', 'File restored successfully from backup!');
             } else {
-                return response()->json(['success' => false, 'message' => 'Failed to restore file.']);
+                return redirect()->back()->with('error', 'Failed to restore file from backup.');
             }
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+            \Log::error('Error restoring from backup: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error restoring file: ' . $e->getMessage());
         }
     }
 }
