@@ -22,6 +22,28 @@ A Laravel package that integrates with Perplexity AI to provide intelligent erro
 ### 1. Install via Composer
 
 ```bash
+composer require coderubix/laravel-ai-error-handler:dev-main
+```
+
+**Note**: Since this package is in development, use `:dev-main` to allow development versions.
+
+#### Alternative: Local Development Installation
+
+If you're developing this package locally, you can also add it as a path repository in your Laravel project's `composer.json`:
+
+```json
+{
+    "repositories": [
+        {
+            "type": "path",
+            "url": "/path/to/laravel-ai-error-handler"
+        }
+    ]
+}
+```
+
+Then install without version constraint:
+```bash
 composer require coderubix/laravel-ai-error-handler
 ```
 
