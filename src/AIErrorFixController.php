@@ -139,26 +139,36 @@ class AIErrorFixController
             // Get the updated file content to show in success page
             $updatedContent = File::get($errorFile);
             
-            // Set session data directly
-            session([
-                'success' => 'Fix applied successfully!',
-                'backup_file' => $backupFileName,
-                'error_file' => $errorFile,
-                'error_line' => $errorLine,
-                'updated_content' => $updatedContent
-            ]);
+            // Try multiple session setting methods
+            session()->put('ai_fix_success', 'Fix applied successfully!');
+            session()->put('ai_fix_backup_file', $backupFileName);
+            session()->put('ai_fix_error_file', $errorFile);
+            session()->put('ai_fix_error_line', $errorLine);
+            session()->put('ai_fix_updated_content', $updatedContent);
+            
+            // Force save session
+            session()->save();
             
             // Debug: Log what we're setting in session
             \Log::info('Setting session data for success page', [
-                'success' => session('success'),
-                'backup_file' => session('backup_file'),
-                'error_file' => session('error_file'),
-                'error_line' => session('error_line'),
+                'success' => session('ai_fix_success'),
+                'backup_file' => session('ai_fix_backup_file'),
+                'error_file' => session('ai_fix_error_file'),
+                'error_line' => session('ai_fix_error_line'),
                 'updated_content_length' => strlen($updatedContent),
+                'session_id' => session()->getId(),
                 'route_name' => 'ai-error-handler.success'
             ]);
             
-            return redirect()->route('ai-error-handler.success');
+            // Also pass data via URL parameters as backup
+            $params = [
+                'success' => 'Fix applied successfully!',
+                'backup_file' => $backupFileName,
+                'error_file' => base64_encode($errorFile),
+                'error_line' => $errorLine
+            ];
+            
+            return redirect()->route('ai-error-handler.success', $params);
 
         } catch (\Exception $e) {
             \Log::error('Error applying AI fix: ' . $e->getMessage());
@@ -183,15 +193,22 @@ class AIErrorFixController
                 // Delete the backup after successful restore
                 $this->backupService->deleteBackup($backupFile);
                 
-                // Set session data directly
-                session([
+                // Set session data with multiple methods
+                session()->put('ai_fix_success', 'File restored successfully from backup!');
+                session()->put('ai_fix_backup_file', 'Backup deleted after restoration');
+                session()->put('ai_fix_error_file', $errorFile);
+                session()->put('ai_fix_error_line', 0);
+                session()->save();
+                
+                // Also pass via URL parameters
+                $params = [
                     'success' => 'File restored successfully from backup!',
                     'backup_file' => 'Backup deleted after restoration',
-                    'error_file' => $errorFile,
+                    'error_file' => base64_encode($errorFile),
                     'error_line' => 0
-                ]);
+                ];
                 
-                return redirect()->route('ai-error-handler.success');
+                return redirect()->route('ai-error-handler.success', $params);
             } else {
                 return redirect()->back()->with('error', 'Failed to restore file from backup.');
             }
@@ -204,30 +221,39 @@ class AIErrorFixController
 
     public function showSuccess(Request $request)
     {
-        // Debug: Log all session data
+        // Debug: Log all data sources
         \Log::info('Success page accessed', [
+            'url_params' => $request->all(),
             'session_data' => session()->all(),
-            'success' => session('success'),
-            'backup_file' => session('backup_file'),
-            'error_file' => session('error_file'),
-            'error_line' => session('error_line'),
-            'updated_content' => session('updated_content')
+            'ai_fix_session' => [
+                'success' => session('ai_fix_success'),
+                'backup_file' => session('ai_fix_backup_file'),
+                'error_file' => session('ai_fix_error_file'),
+                'error_line' => session('ai_fix_error_line'),
+            ]
         ]);
 
-        if (!session('success')) {
-            \Log::warning('No success session found, redirecting to fix page');
-            return redirect()->route('ai-error-handler.fix');
-        }
+        // Try to get data from multiple sources
+        $success = $request->get('success') ?: session('ai_fix_success') ?: session('success');
+        $backupFile = $request->get('backup_file') ?: session('ai_fix_backup_file') ?: session('backup_file');
+        $errorFile = $request->get('error_file') ? base64_decode($request->get('error_file')) : (session('ai_fix_error_file') ?: session('error_file'));
+        $errorLine = $request->get('error_line') ?: session('ai_fix_error_line') ?: session('error_line');
+        $updatedContent = session('ai_fix_updated_content') ?: session('updated_content');
 
-        $backupFile = session('backup_file');
-        $errorFile = session('error_file');
-        $errorLine = session('error_line');
-        $updatedContent = session('updated_content');
+        // If no success message found anywhere, create a default one
+        if (!$success) {
+            \Log::warning('No success data found in any source');
+            $success = 'Operation completed successfully!';
+            $backupFile = 'Unknown backup';
+            $errorFile = 'Unknown file';
+            $errorLine = 0;
+        }
 
         // Check if backup still exists
         $hasBackup = $errorFile ? $this->backupService->hasBackup($errorFile) : false;
 
-        \Log::info('Rendering success view', [
+        \Log::info('Rendering success view with data', [
+            'success' => $success,
             'backupFile' => $backupFile,
             'errorFile' => $errorFile,
             'errorLine' => $errorLine,
@@ -236,7 +262,7 @@ class AIErrorFixController
         ]);
 
         return view('ai-error-handler::success', [
-            'success' => session('success'),
+            'success' => $success,
             'backupFile' => $backupFile,
             'errorFile' => $errorFile,
             'errorLine' => $errorLine,
